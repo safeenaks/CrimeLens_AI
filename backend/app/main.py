@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import check_database_connection
 from app.routers.cases import router as cases_router
 from app.routers import cases, analytics, risk, hotspots
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="CrimeLens AI API",
@@ -10,7 +11,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # CORS Configuration
 # Allows the React frontend to communicate with the FastAPI backend.
 app.add_middleware(
