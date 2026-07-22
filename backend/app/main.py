@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import check_database_connection
+from app.routers.cases import router as cases_router
+from app.routers import cases, analytics
 
 app = FastAPI(
     title="CrimeLens AI API",
@@ -21,6 +23,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(cases.router)
+app.include_router(analytics.router)
 
 @app.get("/")
 def root():
