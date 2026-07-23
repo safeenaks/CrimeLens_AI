@@ -10,20 +10,44 @@ import CaseLinkage from "./pages/CaseLinkage";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
+import DashboardLayout from "./layouts/DashboardLayout";
+
 function App() {
   return (
     <BrowserRouter>
+
       <Routes>
+
         <Route path="/" element={<Landing />} />
+
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/cases" element={<Cases />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/hotspots" element={<Hotspots />} />
-        <Route path="/case-linkage" element={<CaseLinkage />} />
-        <Route path="/settings" element={<Settings />} />
+
+        <Route element={<DashboardLayout />}>
+
+          <Route path="/dashboard" element={<Dashboard />} />
+
+          <Route path="/cases" element={<Cases />} />
+
+          <Route path="/analytics" element={<Analytics />} />
+
+          <Route path="/hotspots" element={<Hotspots />} />
+
+          <Route
+            path="/case-linkage"
+            element={<CaseLinkage />}
+          />
+
+          <Route
+            path="/settings"
+            element={<Settings />}
+          />
+
+        </Route>
+
         <Route path="*" element={<NotFound />} />
+
       </Routes>
+
     </BrowserRouter>
   );
 }
