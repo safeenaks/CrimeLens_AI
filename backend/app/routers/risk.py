@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Query
+from pymongo.errors import PyMongoError
 
 from app.database import database
 from app.services.risk_service import calculate_risk_score
+from app.utils.database_errors import handle_database_error
 
 
 router = APIRouter(
@@ -19,16 +21,19 @@ def get_district_risk(
     using the cases currently stored in MongoDB.
     """
 
-    cases = list(
-        database.cases.find(
-            {
-                "district": {
-                    "$regex": f"^{district}$",
-                    "$options": "i"
+    try:
+        cases = list(
+            database.cases.find(
+                {
+                    "district": {
+                        "$regex": f"^{district}$",
+                        "$options": "i"
+                    }
                 }
-            }
+            )
         )
-    )
+    except PyMongoError as error:
+        handle_database_error(error)
 
     result = calculate_risk_score(cases)
 

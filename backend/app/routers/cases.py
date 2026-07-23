@@ -1,9 +1,12 @@
 from fastapi import APIRouter, HTTPException, status
 from bson import ObjectId
 from bson.errors import InvalidId
+from pymongo.errors import PyMongoError
 
 from app.database import database
 from app.schemas import CaseCreate, CaseResponse, CaseUpdate
+from app.utils.database_errors import handle_database_error
+
 
 router = APIRouter(
     prefix="/api/cases",
@@ -40,25 +43,30 @@ def create_case(case: CaseCreate):
     Create a new crime/FIR case in MongoDB.
     """
 
-    existing_case = database.cases.find_one(
-        {"fir_number": case.fir_number}
-    )
-
-    if existing_case:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A case with this FIR number already exists."
+    try:
+        existing_case = database.cases.find_one(
+            {"fir_number": case.fir_number}
         )
 
-    case_document = case.model_dump()
+        if existing_case:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A case with this FIR number already exists."
+            )
 
-    result = database.cases.insert_one(case_document)
+        case_document = case.model_dump()
 
-    created_case = database.cases.find_one(
-        {"_id": result.inserted_id}
-    )
+        result = database.cases.insert_one(case_document)
+
+        created_case = database.cases.find_one(
+            {"_id": result.inserted_id}
+        )
+
+    except PyMongoError as error:
+        handle_database_error(error)
 
     return serialize_case(created_case)
+
 
 @router.get(
     "",
@@ -101,9 +109,14 @@ def get_all_cases(
             "$options": "i"
         }
 
-    cases = database.cases.find(query)
+    try:
+        cases = list(database.cases.find(query))
+    except PyMongoError as error:
+        handle_database_error(error)
 
     return [serialize_case(case) for case in cases]
+
+
 @router.get(
     "/{case_id}",
     response_model=CaseResponse,
@@ -122,9 +135,12 @@ def get_case_by_id(case_id: str):
             detail="Invalid case ID."
         )
 
-    case = database.cases.find_one(
-        {"_id": object_id}
-    )
+    try:
+        case = database.cases.find_one(
+            {"_id": object_id}
+        )
+    except PyMongoError as error:
+        handle_database_error(error)
 
     if not case:
         raise HTTPException(
@@ -133,6 +149,7 @@ def get_case_by_id(case_id: str):
         )
 
     return serialize_case(case)
+
 
 @router.put(
     "/{case_id}",
@@ -152,29 +169,34 @@ def update_case(case_id: str, case_update: CaseUpdate):
             detail="Invalid case ID."
         )
 
-    existing_case = database.cases.find_one(
-        {"_id": object_id}
-    )
-
-    if not existing_case:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Case not found."
+    try:
+        existing_case = database.cases.find_one(
+            {"_id": object_id}
         )
 
-    update_data = case_update.model_dump(exclude_unset=True)
+        if not existing_case:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Case not found."
+            )
 
-    if update_data:
-        database.cases.update_one(
-            {"_id": object_id},
-            {"$set": update_data}
+        update_data = case_update.model_dump(exclude_unset=True)
+
+        if update_data:
+            database.cases.update_one(
+                {"_id": object_id},
+                {"$set": update_data}
+            )
+
+        updated_case = database.cases.find_one(
+            {"_id": object_id}
         )
 
-    updated_case = database.cases.find_one(
-        {"_id": object_id}
-    )
+    except PyMongoError as error:
+        handle_database_error(error)
 
     return serialize_case(updated_case)
+
 
 @router.delete(
     "/{case_id}",
@@ -193,19 +215,23 @@ def delete_case(case_id: str):
             detail="Invalid case ID."
         )
 
-    existing_case = database.cases.find_one(
-        {"_id": object_id}
-    )
-
-    if not existing_case:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Case not found."
+    try:
+        existing_case = database.cases.find_one(
+            {"_id": object_id}
         )
 
-    database.cases.delete_one(
-        {"_id": object_id}
-    )
+        if not existing_case:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Case not found."
+            )
+
+        database.cases.delete_one(
+            {"_id": object_id}
+        )
+
+    except PyMongoError as error:
+        handle_database_error(error)
 
     return {
         "message": "Case deleted successfully.",

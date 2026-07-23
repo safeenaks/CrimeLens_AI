@@ -1,7 +1,9 @@
 from fastapi import APIRouter
+from pymongo.errors import PyMongoError
 
 from app.database import database
 from app.services.hotspot_service import calculate_hotspot
+from app.utils.database_errors import handle_database_error
 
 
 router = APIRouter(
@@ -43,7 +45,10 @@ def get_hotspots():
         }
     ]
 
-    results = list(database.cases.aggregate(pipeline))
+    try:
+        results = list(database.cases.aggregate(pipeline))
+    except PyMongoError as error:
+        handle_database_error(error)
 
     hotspots = []
 
