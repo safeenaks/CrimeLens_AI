@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.database import database
+from app.services.hotspot_service import calculate_hotspot
 
 
 router = APIRouter(
@@ -47,19 +48,13 @@ def get_hotspots():
     hotspots = []
 
     for result in results:
-
         total_cases = result["total_cases"]
         high_cases = result["high_severity_cases"]
 
-        # Simple rule-based hotspot score
-        hotspot_score = total_cases + (high_cases * 2)
-
-        if hotspot_score >= 6:
-            risk_level = "High"
-        elif hotspot_score >= 3:
-            risk_level = "Medium"
-        else:
-            risk_level = "Low"
+        hotspot_result = calculate_hotspot(
+            total_cases,
+            high_cases
+        )
 
         hotspots.append({
             "district": result["_id"]["district"],
@@ -68,8 +63,7 @@ def get_hotspots():
             "longitude": round(result["longitude"], 6),
             "total_cases": total_cases,
             "high_severity_cases": high_cases,
-            "hotspot_score": hotspot_score,
-            "risk_level": risk_level
+            **hotspot_result
         })
 
     hotspots.sort(
