@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from pymongo.errors import PyMongoError
 
+from app.schemas import StationPredictionResponse
 from app.services.prediction_service import predict_station_crime
 from app.utils.database_errors import handle_database_error
 
@@ -11,7 +12,10 @@ router = APIRouter(
 )
 
 
-@router.get("/station")
+@router.get(
+    "/station",
+    response_model=StationPredictionResponse
+)
 def predict_station(
     police_station: str = Query(..., min_length=1)
 ):

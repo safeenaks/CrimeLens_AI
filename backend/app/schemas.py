@@ -79,3 +79,10 @@ class CaseUpdate(BaseModel):
     incident_date: datetime | None = None
     status: CaseStatus | None = None
     severity: CaseSeverity | None = None
+
+class StationPredictionResponse(BaseModel):
+    district: str
+    police_station: str
+    latest_data_year: int
+    latest_data_month: int
+    predicted_next_month_crime_count: int
