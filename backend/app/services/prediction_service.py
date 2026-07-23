@@ -124,3 +124,60 @@ def predict_station_crime(police_station: str) -> dict:
         "latest_data_month": int(latest["month"]),
         "predicted_next_month_crime_count": predicted_count
     }
+def predict_district_crime(district: str) -> dict:
+    """
+    Predict next-month crime count for a district by
+    aggregating predictions from its police stations.
+    """
+
+    stations = database.historical_cases.distinct(
+        "police_station",
+        {
+            "district": {
+                "$regex": f"^{district}$",
+                "$options": "i"
+            }
+        }
+    )
+
+    if not stations:
+        raise ValueError(
+            "No historical data found for this district."
+        )
+
+    station_predictions = []
+    total_predicted_count = 0
+
+    for station in sorted(stations):
+        try:
+            prediction = predict_station_crime(station)
+
+            predicted_count = prediction[
+                "predicted_next_month_crime_count"
+            ]
+
+            station_predictions.append(
+                {
+                    "police_station": station,
+                    "predicted_count": predicted_count
+                }
+            )
+
+            total_predicted_count += predicted_count
+
+        except ValueError:
+            # Skip stations without enough historical data
+            continue
+
+    if not station_predictions:
+        raise ValueError(
+            "No police stations in this district have "
+            "enough historical data for prediction."
+        )
+
+    return {
+        "district": district,
+        "station_count": len(station_predictions),
+        "predicted_next_month_crime_count": total_predicted_count,
+        "station_predictions": station_predictions
+    }

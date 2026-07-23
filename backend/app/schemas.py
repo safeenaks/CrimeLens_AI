@@ -86,3 +86,14 @@ class StationPredictionResponse(BaseModel):
     latest_data_year: int
     latest_data_month: int
     predicted_next_month_crime_count: int
+
+class StationPredictionItem(BaseModel):
+    police_station: str
+    predicted_count: int
+
+
+class DistrictPredictionResponse(BaseModel):
+    district: str
+    station_count: int
+    predicted_next_month_crime_count: int
+    station_predictions: list[StationPredictionItem]
