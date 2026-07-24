@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import {
   getAnalyticsSummary,
   getDistrictPrediction,
+  getPredictionDistricts,
 } from "../services/api";
 
 function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [prediction, setPrediction] = useState(null);
 
+  const [districts, setDistricts] = useState([]);
   const [selectedDistrict, setSelectedDistrict] =
-    useState("Mysuru");
+    useState("");
 
   const [error, setError] = useState("");
   const [predictionError, setPredictionError] =
@@ -18,76 +20,71 @@ function Dashboard() {
   const [predictionLoading, setPredictionLoading] =
     useState(false);
 
-  const districts = [
-    "Ballari",
-    "Belagavi",
-    "Belagavi Rural",
-    "Bengaluru Rural",
-    "Bengaluru Urban",
-    "Bidar",
-    "Chikkamagaluru",
-    "Chitradurga",
-    "Dakshina Kannada",
-    "Davanagere",
-    "Dharwad",
-    "Gadag",
-    "Hassan",
-    "Haveri",
-    "Kalaburagi",
-    "Kodagu",
-    "Kolar",
-    "Koppal",
-    "Mandya",
-    "Mysuru",
-    "Raichur",
-    "Ramanagara",
-    "Shivamogga",
-    "Tumakuru",
-    "Udupi",
-    "Uttara Kannada",
-    "Vijayapura",
-    "Yadgir",
-  ];
 
   // Load dashboard analytics
-  useEffect(() => {
-    async function loadSummary() {
-      try {
-        const summaryData =
-          await getAnalyticsSummary();
-
-        setSummary(summaryData);
-      } catch (err) {
-        setError(err.message);
-      }
-    }
-
-    loadSummary();
-  }, []);
+  
 
   // Load ML prediction whenever district changes
-  useEffect(() => {
-    async function loadPrediction() {
-      try {
-        setPredictionLoading(true);
-        setPredictionError("");
-        setPrediction(null);
+  // Load dashboard analytics and available ML districts
 
-        const predictionData =
-          await getDistrictPrediction(
-            selectedDistrict
-          );
+useEffect(() => {
+  if (!selectedDistrict) {
+    return;
+  }
 
-        setPrediction(predictionData);
-      } catch (err) {
-        setPredictionError(err.message);
-      } finally {
-        setPredictionLoading(false);
-      }
+  async function loadPrediction() {
+    try {
+      setPredictionLoading(true);
+      setPredictionError("");
+      setPrediction(null);
+
+      const predictionData =
+        await getDistrictPrediction(
+          selectedDistrict
+        );
+
+      setPrediction(predictionData);
+    } catch (err) {
+      setPredictionError(err.message);
+    } finally {
+      setPredictionLoading(false);
     }
+  }
 
-    loadPrediction();
-  }, [selectedDistrict]);
+  loadPrediction();
+}, [selectedDistrict]);
+
+useEffect(() => {
+  async function loadDashboard() {
+    try {
+      const [summaryData, districtData] =
+        await Promise.all([
+          getAnalyticsSummary(),
+          getPredictionDistricts(),
+        ]);
+
+      setSummary(summaryData);
+
+      const availableDistricts =
+        districtData.districts || [];
+
+      setDistricts(availableDistricts);
+
+      if (availableDistricts.length > 0) {
+        const defaultDistrict =
+          availableDistricts.includes("Mysuru")
+            ? "Mysuru"
+            : availableDistricts[0];
+
+        setSelectedDistrict(defaultDistrict);
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  loadDashboard();
+}, []);
 
   if (error) {
     return (
