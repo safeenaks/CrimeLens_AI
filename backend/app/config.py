@@ -9,6 +9,11 @@ load_dotenv()
 MONGODB_URL = os.getenv("MONGODB_URL")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "crimelens_db")
 
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173"
+)
+
 
 if not MONGODB_URL:
     raise ValueError(
