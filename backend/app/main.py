@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import check_database_connection
-from app.routers import cases, analytics, risk, hotspots
+from app.routers import cases, analytics, risk, hotspots, predictions
 
 
 app = FastAPI(
@@ -36,6 +36,7 @@ app.include_router(cases.router)
 app.include_router(analytics.router)
 app.include_router(risk.router)
 app.include_router(hotspots.router)
+app.include_router(predictions.router)
 
 
 @app.get("/")
