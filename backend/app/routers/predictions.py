@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from pymongo.errors import PyMongoError
-
+from app.database import database
 from app.schemas import (
     DistrictPredictionResponse,
     StationPredictionResponse
@@ -17,6 +17,26 @@ router = APIRouter(
     tags=["ML Predictions"]
 )
 
+@router.get("/districts")
+def get_prediction_districts():
+    """
+    Return districts that have historical data available
+    for ML crime prediction.
+    """
+
+    try:
+        districts = database.historical_cases.distinct("district")
+
+        return {
+            "districts": sorted(
+                district
+                for district in districts
+                if district
+            )
+        }
+
+    except PyMongoError as error:
+        handle_database_error(error)
 
 @router.get(
     "/station",

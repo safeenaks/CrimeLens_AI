@@ -78,6 +78,10 @@ export function getDistrictPrediction(district) {
     )}`
   );
 }
+
+export function getPredictionDistricts() {
+  return request("/api/predictions/districts");
+}
 // Cases
 
 export function getCases() {
