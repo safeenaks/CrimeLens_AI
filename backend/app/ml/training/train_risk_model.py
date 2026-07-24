@@ -34,16 +34,19 @@ def train_model():
     # --------------------------------------------------
 
     features = [
-        "district",
-        "police_station",
-        "year",
-        "month",
-        "high_severity_count",
-        "latitude",
-        "longitude",
-        "previous_month_crime_count",
-        "rolling_3_month_avg"
-    ]
+    "district",
+    "police_station",
+    "year",
+    "month",
+    "high_severity_count",
+    "latitude",
+    "longitude",
+    "previous_month_crime_count",
+    "lag_2_crime_count",
+    "lag_3_crime_count",
+    "rolling_3_month_avg",
+    "crime_trend"
+]
 
     target = "next_month_crime_count"
 
@@ -73,14 +76,17 @@ def train_model():
     ]
 
     numeric_features = [
-        "year",
-        "month",
-        "high_severity_count",
-        "latitude",
-        "longitude",
-        "previous_month_crime_count",
-        "rolling_3_month_avg"
-    ]
+    "year",
+    "month",
+    "high_severity_count",
+    "latitude",
+    "longitude",
+    "previous_month_crime_count",
+    "lag_2_crime_count",
+    "lag_3_crime_count",
+    "rolling_3_month_avg",
+    "crime_trend"
+]
 
     # --------------------------------------------------
     # Preprocessing

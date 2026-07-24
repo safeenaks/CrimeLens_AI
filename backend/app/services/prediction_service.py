@@ -94,33 +94,51 @@ def predict_station_crime(police_station: str) -> dict:
 
     previous_month_crime_count = monthly.iloc[-2]["crime_count"]
 
+    lag_2_crime_count = monthly.iloc[-3]["crime_count"]
+
+    lag_3_crime_count = monthly.iloc[-4]["crime_count"]
+
     rolling_3_month_avg = (
-    monthly.iloc[-3:]["crime_count"].mean()
-)
+        monthly.iloc[-3:]["crime_count"].mean()
+    )
+
+    crime_trend = (
+        latest["crime_count"]
+        - previous_month_crime_count
+    )
 
     district = df["district"].iloc[0]
 
     input_data = pd.DataFrame(
-        [
-            {
-                "district": district,
-                "police_station": police_station,
-                "year": int(latest["year"]),
-                "month": int(latest["month"]),
-                "high_severity_count": int(
-                    latest["high_severity_count"]
-                ),
-                "latitude": float(latest["latitude"]),
-                "longitude": float(latest["longitude"]),
-                "previous_month_crime_count": float(
-                    previous_month_crime_count
-                ),
-                "rolling_3_month_avg": float(
-                    rolling_3_month_avg
-                )
-            }
-        ]
-    )
+    [
+        {
+            "district": district,
+            "police_station": police_station,
+            "year": int(latest["year"]),
+            "month": int(latest["month"]),
+            "high_severity_count": int(
+                latest["high_severity_count"]
+            ),
+            "latitude": float(latest["latitude"]),
+            "longitude": float(latest["longitude"]),
+            "previous_month_crime_count": float(
+                previous_month_crime_count
+            ),
+            "lag_2_crime_count": float(
+                lag_2_crime_count
+            ),
+            "lag_3_crime_count": float(
+                lag_3_crime_count
+            ),
+            "rolling_3_month_avg": float(
+                rolling_3_month_avg
+            ),
+            "crime_trend": float(
+                crime_trend
+            )
+        }
+    ]
+)
 
     prediction = model.predict(input_data)[0]
 

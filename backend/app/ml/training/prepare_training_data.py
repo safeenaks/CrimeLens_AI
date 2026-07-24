@@ -66,6 +66,16 @@ def prepare_training_data():
         station_groups["crime_count"].shift(1)
     )
 
+    # Crime count two months ago
+    monthly["lag_2_crime_count"] = (
+        station_groups["crime_count"].shift(2)
+    )
+
+    # Crime count three months ago
+    monthly["lag_3_crime_count"] = (
+        station_groups["crime_count"].shift(3)
+    )
+
     # Current month + previous two months.
     # This is information available when forecasting next month.
     monthly["rolling_3_month_avg"] = (
@@ -76,6 +86,13 @@ def prepare_training_data():
         )
     )
 
+    # Difference between the current month and previous month
+    monthly["crime_trend"] = (
+        monthly["crime_count"]
+        - monthly["previous_month_crime_count"]
+    )
+
+
     # Target = following month's crime count
     monthly["next_month_crime_count"] = (
         station_groups["crime_count"].shift(-1)
@@ -84,7 +101,10 @@ def prepare_training_data():
     training_data = monthly.dropna(
         subset=[
             "previous_month_crime_count",
+            "lag_2_crime_count",
+            "lag_3_crime_count",
             "rolling_3_month_avg",
+            "crime_trend",
             "next_month_crime_count"
         ]
     ).copy()

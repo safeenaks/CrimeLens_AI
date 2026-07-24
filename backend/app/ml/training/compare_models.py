@@ -24,7 +24,10 @@ FEATURES = [
     "latitude",
     "longitude",
     "previous_month_crime_count",
-    "rolling_3_month_avg"
+    "lag_2_crime_count",
+    "lag_3_crime_count",
+    "rolling_3_month_avg",
+    "crime_trend"
 ]
 
 CATEGORICAL_FEATURES = [
@@ -39,7 +42,10 @@ NUMERIC_FEATURES = [
     "latitude",
     "longitude",
     "previous_month_crime_count",
-    "rolling_3_month_avg"
+    "lag_2_crime_count",
+    "lag_3_crime_count",
+    "rolling_3_month_avg",
+    "crime_trend"
 ]
 
 TARGET = "next_month_crime_count"
