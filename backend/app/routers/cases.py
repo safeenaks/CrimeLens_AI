@@ -1,3 +1,5 @@
+from dbm import error
+
 from fastapi import APIRouter, HTTPException, status
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -108,9 +110,10 @@ def get_all_cases(
             "$regex": f"^{severity}$",
             "$options": "i"
         }
-
     try:
-        cases = list(database.cases.find(query))
+        cases = list(
+            database.cases.find(query).sort("_id", -1)
+    )
     except PyMongoError as error:
         handle_database_error(error)
 

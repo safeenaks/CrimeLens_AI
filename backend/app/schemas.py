@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 CaseStatus = Literal[
     "Under Investigation",
     "Solved",
+    "Resolved",
     "Unsolved",
     "Closed"
 ]

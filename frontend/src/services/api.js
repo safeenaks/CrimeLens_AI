@@ -1,7 +1,13 @@
 const API_BASE_URL = "http://127.0.0.1:8000";
 
-async function request(endpoint) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`);
+async function request(endpoint, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+    ...options,
+  });
 
   if (!response.ok) {
     let message = "API request failed";
@@ -71,4 +77,33 @@ export function getDistrictPrediction(district) {
       district
     )}`
   );
+}
+// Cases
+
+export function getCases() {
+  return request("/api/cases");
+}
+
+export function getCaseById(caseId) {
+  return request(`/api/cases/${caseId}`);
+}
+
+export function createCase(caseData) {
+  return request("/api/cases", {
+    method: "POST",
+    body: JSON.stringify(caseData),
+  });
+}
+
+export function updateCase(caseId, caseData) {
+  return request(`/api/cases/${caseId}`, {
+    method: "PUT",
+    body: JSON.stringify(caseData),
+  });
+}
+
+export function deleteCase(caseId) {
+  return request(`/api/cases/${caseId}`, {
+    method: "DELETE",
+  });
 }
