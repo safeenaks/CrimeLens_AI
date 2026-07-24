@@ -14,7 +14,19 @@ MODEL_PATH = (
 )
 
 model = joblib.load(MODEL_PATH)
+def classify_station_risk(predicted_count: int) -> str:
+    """
+    Classify station-level predicted monthly crime count
+    using historical 33rd and 67th percentile thresholds.
+    """
 
+    if predicted_count <= 16:
+        return "Low"
+
+    if predicted_count <= 23:
+        return "Medium"
+
+    return "High"
 
 def predict_station_crime(police_station: str) -> dict:
     """
@@ -117,13 +129,17 @@ def predict_station_crime(police_station: str) -> dict:
         int(round(prediction))
     )
 
+    risk_level = classify_station_risk(predicted_count)
+
     return {
         "district": district,
         "police_station": police_station,
         "latest_data_year": int(latest["year"]),
         "latest_data_month": int(latest["month"]),
-        "predicted_next_month_crime_count": predicted_count
+        "predicted_next_month_crime_count": predicted_count,
+        "risk_level": risk_level
     }
+
 def predict_district_crime(district: str) -> dict:
     """
     Predict next-month crime count for a district by
@@ -148,6 +164,12 @@ def predict_district_crime(district: str) -> dict:
     station_predictions = []
     total_predicted_count = 0
 
+    risk_summary = {
+        "low": 0,
+        "medium": 0,
+        "high": 0
+    }
+
     for station in sorted(stations):
         try:
             prediction = predict_station_crime(station)
@@ -156,13 +178,17 @@ def predict_district_crime(district: str) -> dict:
                 "predicted_next_month_crime_count"
             ]
 
+            risk_level = prediction["risk_level"]
+
             station_predictions.append(
                 {
                     "police_station": station,
-                    "predicted_count": predicted_count
+                    "predicted_count": predicted_count,
+                    "risk_level": risk_level
                 }
             )
 
+            risk_summary[risk_level.lower()] += 1
             total_predicted_count += predicted_count
 
         except ValueError:
@@ -179,5 +205,6 @@ def predict_district_crime(district: str) -> dict:
         "district": district,
         "station_count": len(station_predictions),
         "predicted_next_month_crime_count": total_predicted_count,
+        "risk_summary": risk_summary,
         "station_predictions": station_predictions
     }
