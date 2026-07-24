@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import check_database_connection
 from app.routers import cases, analytics, risk, hotspots, predictions, linkage
-
+from app.config import FRONTEND_URL
 
 app = FastAPI(
     title="CrimeLens AI API",
@@ -24,6 +24,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        FRONTEND_URL,
     ],
     allow_credentials=True,
     allow_methods=["*"],
