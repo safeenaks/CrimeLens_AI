@@ -1,0 +1,80 @@
+# ==========================================
+# CrimeLens AI - Git Ignore Configuration
+# ==========================================
+
+# ------------------
+# Environment Files
+# ------------------
+.env
+.env.*
+!.env.example
+
+# ------------------
+# Python
+# ------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python Testing / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Python Build Files
+build/
+dist/
+*.egg-info/
+
+# ------------------
+# Node / React
+# ------------------
+node_modules/
+frontend/node_modules/
+
+# React/Vite Build Output
+dist/
+frontend/dist/
+
+# ------------------
+# IDE / Editor
+# ------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ------------------
+# Operating System
+# ------------------
+.DS_Store
+Thumbs.db
+
+# ------------------
+# Logs
+# ------------------
+*.log
+logs/
+
+# ------------------
+# Local Databases
+# ------------------
+*.db
+*.sqlite
+*.sqlite3
+
+# ------------------
+# Secrets / Credentials
+# ------------------
+*.pem
+*.key
+credentials.json
+secrets.json
