@@ -107,3 +107,9 @@ export function deleteCase(caseId) {
     method: "DELETE",
   });
 }
+
+// Case Linkage
+
+export function getCaseLinkage(caseId) {
+  return request(`/api/linkage/${caseId}`);
+}
