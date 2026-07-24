@@ -3,6 +3,7 @@ import {
   createCase,
   deleteCase,
   getCases,
+  updateCase,
 } from "../services/api";
 
 const initialFormData = {
@@ -31,6 +32,10 @@ function Cases() {
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
+
+  const [editingCase, setEditingCase] = useState(null);
+  const [editData, setEditData] = useState(initialFormData);
+
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState("");
 
@@ -158,6 +163,15 @@ function Cases() {
     }));
   }
 
+  function handleEditChange(event) {
+    const { name, value } = event.target;
+
+    setEditData((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  }
+
   async function handleAddCase(event) {
     event.preventDefault();
 
@@ -190,6 +204,86 @@ function Cases() {
     }
   }
 
+  function startEditing(crimeCase) {
+    setShowAddForm(false);
+    setActionError("");
+
+    setEditingCase(crimeCase);
+
+    setEditData({
+      fir_number: crimeCase.fir_number || "",
+      crime_type: crimeCase.crime_type || "",
+      description: crimeCase.description || "",
+      district: crimeCase.district || "",
+      police_station: crimeCase.police_station || "",
+      latitude: crimeCase.latitude ?? "",
+      longitude: crimeCase.longitude ?? "",
+      incident_date: formatDateForInput(
+        crimeCase.incident_date
+      ),
+      status: crimeCase.status || "Under Investigation",
+      severity: crimeCase.severity || "Medium",
+    });
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function cancelEditing() {
+    setEditingCase(null);
+    setEditData(initialFormData);
+    setActionError("");
+  }
+
+  async function handleUpdateCase(event) {
+    event.preventDefault();
+
+    if (!editingCase) {
+      return;
+    }
+
+    setSubmitting(true);
+    setActionError("");
+
+    try {
+      const updateData = {
+        crime_type: editData.crime_type,
+        description: editData.description,
+        district: editData.district,
+        police_station: editData.police_station,
+        latitude: Number(editData.latitude),
+        longitude: Number(editData.longitude),
+        incident_date: new Date(
+          editData.incident_date
+        ).toISOString(),
+        status: editData.status,
+        severity: editData.severity,
+      };
+
+      const updatedCase = await updateCase(
+        editingCase.id,
+        updateData
+      );
+
+      setCases((previous) =>
+        previous.map((crimeCase) =>
+          crimeCase.id === updatedCase.id
+            ? updatedCase
+            : crimeCase
+        )
+      );
+
+      setEditingCase(null);
+      setEditData(initialFormData);
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function handleDeleteCase(caseId) {
     const confirmed = window.confirm(
       "Are you sure you want to delete this case?"
@@ -209,6 +303,10 @@ function Cases() {
           (crimeCase) => crimeCase.id !== caseId
         )
       );
+
+      if (editingCase?.id === caseId) {
+        cancelEditing();
+      }
     } catch (err) {
       setActionError(err.message);
     }
@@ -262,6 +360,27 @@ function Cases() {
     return parsedDate.toLocaleString();
   }
 
+  function formatDateForInput(date) {
+    if (!date) {
+      return "";
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "";
+    }
+
+    const offset =
+      parsedDate.getTimezoneOffset() * 60000;
+
+    return new Date(
+      parsedDate.getTime() - offset
+    )
+      .toISOString()
+      .slice(0, 16);
+  }
+
   if (loading) {
     return (
       <div className="p-8">
@@ -284,7 +403,7 @@ function Cases() {
 
   return (
     <div className="p-8">
-      {/* Page Header */}
+      {/* Header */}
 
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -300,7 +419,10 @@ function Cases() {
         <button
           type="button"
           onClick={() => {
-            setShowAddForm((previous) => !previous);
+            setEditingCase(null);
+            setShowAddForm(
+              (previous) => !previous
+            );
             setActionError("");
           }}
           className="rounded-lg bg-cyan-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400"
@@ -309,181 +431,47 @@ function Cases() {
         </button>
       </div>
 
-      {/* Action Error */}
-
       {actionError && (
         <div className="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-red-400">
           {actionError}
         </div>
       )}
 
-      {/* Add Case Form */}
+      {/* Add Form */}
 
       {showAddForm && (
-        <form
+        <CaseForm
+          title="Register New Case"
+          data={formData}
+          onChange={handleFormChange}
           onSubmit={handleAddCase}
-          className="mb-6 rounded-xl border border-slate-700 bg-slate-900 p-6"
-        >
-          <h2 className="mb-5 text-lg font-semibold text-white">
-            Register New Case
-          </h2>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <input
-              type="text"
-              name="fir_number"
-              value={formData.fir_number}
-              onChange={handleFormChange}
-              placeholder="FIR Number"
-              required
-              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
-            />
-
-            <input
-              type="text"
-              name="crime_type"
-              value={formData.crime_type}
-              onChange={handleFormChange}
-              placeholder="Crime Type"
-              required
-              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
-            />
-
-            <input
-              type="text"
-              name="district"
-              value={formData.district}
-              onChange={handleFormChange}
-              placeholder="District"
-              required
-              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
-            />
-
-            <input
-              type="text"
-              name="police_station"
-              value={formData.police_station}
-              onChange={handleFormChange}
-              placeholder="Police Station"
-              required
-              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
-            />
-
-            <input
-              type="number"
-              step="any"
-              min="-90"
-              max="90"
-              name="latitude"
-              value={formData.latitude}
-              onChange={handleFormChange}
-              placeholder="Latitude"
-              required
-              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
-            />
-
-            <input
-              type="number"
-              step="any"
-              min="-180"
-              max="180"
-              name="longitude"
-              value={formData.longitude}
-              onChange={handleFormChange}
-              placeholder="Longitude"
-              required
-              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
-            />
-
-            <input
-              type="datetime-local"
-              name="incident_date"
-              value={formData.incident_date}
-              onChange={handleFormChange}
-              required
-              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-400"
-            />
-
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleFormChange}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-400"
-            >
-              <option value="Under Investigation">
-                Under Investigation
-              </option>
-
-              <option value="Solved">
-                Solved
-              </option>
-
-              <option value="Unsolved">
-                Unsolved
-              </option>
-
-              <option value="Closed">
-                Closed
-              </option>
-            </select>
-
-            <select
-              name="severity"
-              value={formData.severity}
-              onChange={handleFormChange}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-400"
-            >
-              <option value="Low">
-                Low
-              </option>
-
-              <option value="Medium">
-                Medium
-              </option>
-
-              <option value="High">
-                High
-              </option>
-            </select>
-          </div>
-
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleFormChange}
-            placeholder="Case description"
-            required
-            rows="4"
-            className="mt-4 w-full resize-none rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
-          />
-
-          <div className="mt-5 flex gap-3">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-lg bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting
-                ? "Registering..."
-                : "Register Case"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddForm(false);
-                setFormData(initialFormData);
-                setActionError("");
-              }}
-              className="rounded-lg border border-slate-600 px-6 py-3 font-medium text-slate-300 transition hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+          submitting={submitting}
+          submitText="Register Case"
+          onCancel={() => {
+            setShowAddForm(false);
+            setFormData(initialFormData);
+            setActionError("");
+          }}
+          showFirNumber
+        />
       )}
 
-      {/* Summary Cards */}
+      {/* Edit Form */}
+
+      {editingCase && (
+        <CaseForm
+          title={`Edit Case - ${editingCase.fir_number}`}
+          data={editData}
+          onChange={handleEditChange}
+          onSubmit={handleUpdateCase}
+          submitting={submitting}
+          submitText="Save Changes"
+          onCancel={cancelEditing}
+          showFirNumber={false}
+        />
+      )}
+
+      {/* Summary */}
 
       <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-3">
         <div className="rounded-xl border border-slate-700 bg-slate-900 p-5">
@@ -529,7 +517,7 @@ function Cases() {
         </div>
       </div>
 
-      {/* Search and Filters */}
+      {/* Filters */}
 
       <div className="mb-6 rounded-xl border border-slate-700 bg-slate-900 p-5">
         <h2 className="mb-4 text-lg font-semibold text-white">
@@ -544,7 +532,7 @@ function Cases() {
             onChange={(event) =>
               setSearch(event.target.value)
             }
-            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-400"
           />
 
           <select
@@ -552,7 +540,7 @@ function Cases() {
             onChange={(event) =>
               setDistrictFilter(event.target.value)
             }
-            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-400"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
           >
             <option value="">
               All Districts
@@ -573,7 +561,7 @@ function Cases() {
             onChange={(event) =>
               setCrimeTypeFilter(event.target.value)
             }
-            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-400"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
           >
             <option value="">
               All Crime Types
@@ -594,7 +582,7 @@ function Cases() {
             onChange={(event) =>
               setStatusFilter(event.target.value)
             }
-            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-400"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
           >
             <option value="">
               All Statuses
@@ -615,7 +603,7 @@ function Cases() {
             onChange={(event) =>
               setSeverityFilter(event.target.value)
             }
-            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-400"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
           >
             <option value="">
               All Severities
@@ -634,7 +622,7 @@ function Cases() {
           <button
             type="button"
             onClick={clearFilters}
-            className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 font-medium text-slate-200 transition hover:bg-slate-700"
+            className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-slate-200 hover:bg-slate-700"
           >
             Clear Filters
           </button>
@@ -646,7 +634,7 @@ function Cases() {
         </p>
       </div>
 
-      {/* Cases Table */}
+      {/* Table */}
 
       <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900">
         <div className="border-b border-slate-700 p-5">
@@ -667,31 +655,24 @@ function Cases() {
                   <th className="px-5 py-4">
                     FIR Number
                   </th>
-
                   <th className="px-5 py-4">
                     Crime Type
                   </th>
-
                   <th className="px-5 py-4">
                     District
                   </th>
-
                   <th className="px-5 py-4">
                     Police Station
                   </th>
-
                   <th className="px-5 py-4">
                     Incident Date
                   </th>
-
                   <th className="px-5 py-4">
                     Status
                   </th>
-
                   <th className="px-5 py-4">
                     Severity
                   </th>
-
                   <th className="px-5 py-4">
                     Actions
                   </th>
@@ -702,7 +683,7 @@ function Cases() {
                 {filteredCases.map((crimeCase) => (
                   <tr
                     key={crimeCase.id}
-                    className="border-t border-slate-700 text-sm transition hover:bg-slate-800/50"
+                    className="border-t border-slate-700 text-sm hover:bg-slate-800/50"
                   >
                     <td className="px-5 py-4 font-medium text-white">
                       {crimeCase.fir_number}
@@ -743,17 +724,29 @@ function Cases() {
                     </td>
 
                     <td className="px-5 py-4">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleDeleteCase(
-                            crimeCase.id
-                          )
-                        }
-                        className="rounded-md border border-red-500/50 px-3 py-2 font-medium text-red-400 transition hover:bg-red-500/10"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            startEditing(crimeCase)
+                          }
+                          className="rounded-md border border-cyan-500/50 px-3 py-2 font-medium text-cyan-400 hover:bg-cyan-500/10"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDeleteCase(
+                              crimeCase.id
+                            )
+                          }
+                          className="rounded-md border border-red-500/50 px-3 py-2 font-medium text-red-400 hover:bg-red-500/10"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -763,6 +756,167 @@ function Cases() {
         )}
       </div>
     </div>
+  );
+}
+
+function CaseForm({
+  title,
+  data,
+  onChange,
+  onSubmit,
+  submitting,
+  submitText,
+  onCancel,
+  showFirNumber,
+}) {
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="mb-6 rounded-xl border border-slate-700 bg-slate-900 p-6"
+    >
+      <h2 className="mb-5 text-lg font-semibold text-white">
+        {title}
+      </h2>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {showFirNumber && (
+          <input
+            name="fir_number"
+            value={data.fir_number}
+            onChange={onChange}
+            placeholder="FIR Number"
+            required
+            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+          />
+        )}
+
+        <input
+          name="crime_type"
+          value={data.crime_type}
+          onChange={onChange}
+          placeholder="Crime Type"
+          required
+          className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+        />
+
+        <input
+          name="district"
+          value={data.district}
+          onChange={onChange}
+          placeholder="District"
+          required
+          className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+        />
+
+        <input
+          name="police_station"
+          value={data.police_station}
+          onChange={onChange}
+          placeholder="Police Station"
+          required
+          className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+        />
+
+        <input
+          type="number"
+          step="any"
+          min="-90"
+          max="90"
+          name="latitude"
+          value={data.latitude}
+          onChange={onChange}
+          placeholder="Latitude"
+          required
+          className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+        />
+
+        <input
+          type="number"
+          step="any"
+          min="-180"
+          max="180"
+          name="longitude"
+          value={data.longitude}
+          onChange={onChange}
+          placeholder="Longitude"
+          required
+          className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+        />
+
+        <input
+          type="datetime-local"
+          name="incident_date"
+          value={data.incident_date}
+          onChange={onChange}
+          required
+          className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+        />
+
+        <select
+          name="status"
+          value={data.status}
+          onChange={onChange}
+          className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+        >
+          <option value="Under Investigation">
+            Under Investigation
+          </option>
+          <option value="Solved">
+            Solved
+          </option>
+          <option value="Resolved">
+            Resolved
+          </option>
+          <option value="Unsolved">
+            Unsolved
+          </option>
+          <option value="Closed">
+            Closed
+          </option>
+        </select>
+
+        <select
+          name="severity"
+          value={data.severity}
+          onChange={onChange}
+          className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+        >
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+        </select>
+      </div>
+
+      <textarea
+        name="description"
+        value={data.description}
+        onChange={onChange}
+        placeholder="Case description"
+        required
+        rows="4"
+        className="mt-4 w-full resize-none rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+      />
+
+      <div className="mt-5 flex gap-3">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="rounded-lg bg-cyan-500 px-6 py-3 font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-50"
+        >
+          {submitting
+            ? "Saving..."
+            : submitText}
+        </button>
+
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-slate-600 px-6 py-3 text-slate-300 hover:bg-slate-800"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }
 
