@@ -2,236 +2,173 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   "https://crimelens-ai-backend.onrender.com";
 
+
 async function request(endpoint, options = {}) {
-
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-
     headers: {
-
       "Content-Type": "application/json",
-
       ...options.headers,
-
     },
-
     ...options,
-
   });
-
-
 
   if (!response.ok) {
-
     let message = "API request failed";
 
-
-
     try {
-
       const error = await response.json();
-
       message = error.detail || message;
-
     } catch {
-
       // Response did not contain JSON error details
-
     }
 
-
-
     throw new Error(message);
-
   }
 
-
-
   return response.json();
-
 }
 
 
-
+// ======================================================
 // Analytics
-
-
+// ======================================================
 
 export function getAnalyticsSummary() {
-
   return request("/api/analytics/summary");
-
 }
-
-
 
 export function getDistrictAnalytics() {
-
   return request("/api/analytics/districts");
-
 }
-
-
 
 export function getCrimeTypeAnalytics() {
-
   return request("/api/analytics/crime-types");
-
 }
-
-
 
 export function getSeverityAnalytics() {
-
   return request("/api/analytics/severity");
-
 }
-
-
 
 export function getStatusAnalytics() {
-
   return request("/api/analytics/status");
+}
 
+export function getDemographicAnalytics() {
+  return request("/api/analytics/demographics");
 }
 
 
-
+// ======================================================
 // Hotspots
-
-
+// ======================================================
 
 export function getHotspots() {
-
   return request("/api/hotspots");
-
 }
 
 
-
+// ======================================================
 // Risk
-
-
+// ======================================================
 
 export function getDistrictRisk(district) {
-
   return request(
-
     `/api/risk/district?district=${encodeURIComponent(district)}`
-
   );
-
 }
 
 
-
+// ======================================================
 // ML Predictions
-
-
+// ======================================================
 
 export function getStationPrediction(policeStation) {
-
   return request(
-
     `/api/predictions/station?police_station=${encodeURIComponent(
-
       policeStation
-
     )}`
-
   );
-
 }
-
-
 
 export function getDistrictPrediction(district) {
-
   return request(
-
     `/api/predictions/district?district=${encodeURIComponent(
-
       district
-
     )}`
-
   );
-
 }
-
-
 
 export function getPredictionDistricts() {
-
   return request("/api/predictions/districts");
-
 }
 
+
+// ======================================================
 // Cases
-
-
+// ======================================================
 
 export function getCases() {
-
   return request("/api/cases");
-
 }
-
-
 
 export function getCaseById(caseId) {
-
   return request(`/api/cases/${caseId}`);
-
 }
-
-
 
 export function createCase(caseData) {
-
   return request("/api/cases", {
-
     method: "POST",
-
     body: JSON.stringify(caseData),
-
   });
-
 }
-
-
 
 export function updateCase(caseId, caseData) {
-
   return request(`/api/cases/${caseId}`, {
-
     method: "PUT",
-
     body: JSON.stringify(caseData),
-
   });
-
 }
-
-
 
 export function deleteCase(caseId) {
-
   return request(`/api/cases/${caseId}`, {
-
     method: "DELETE",
-
   });
-
 }
 
 
+// ======================================================
+// AI Investigator
+// ======================================================
 
+export function askInvestigator(
+  question,
+  language = "en",
+  history = []
+) {
+  return request("/api/investigator/ask", {
+    method: "POST",
+    body: JSON.stringify({
+      question,
+      language,
+      history,
+    }),
+  });
+}
+
+
+// ======================================================
 // Case Linkage
-
-
+// ======================================================
 
 export function getCaseLinkage(caseId) {
-
   return request(`/api/linkage/${caseId}`);
+}
 
+export function getCaseLinkageNetwork(
+  caseId,
+  minimumScore = 40
+) {
+  return request(
+    `/api/linkage/${caseId}/network?minimum_score=${minimumScore}`
+  );
 }
