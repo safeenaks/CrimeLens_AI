@@ -12,6 +12,15 @@ router = APIRouter(
 )
 
 
+class ConversationMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=1000,
+    )
+
+
 class InvestigatorRequest(BaseModel):
     question: str = Field(
         ...,
@@ -19,9 +28,15 @@ class InvestigatorRequest(BaseModel):
         max_length=500,
         description="Investigator question in English or Kannada",
     )
+
     language: Literal["en", "kn"] = Field(
         default="en",
         description="Response language: en for English, kn for Kannada",
+    )
+
+    history: list[ConversationMessage] = Field(
+        default_factory=list,
+        description="Recent conversation history for contextual follow-up questions",
     )
 
 
@@ -33,12 +48,26 @@ class InvestigatorResponse(BaseModel):
     evidence: dict
 
 
-@router.post("/ask", response_model=InvestigatorResponse)
-async def ask_investigator(request: InvestigatorRequest):
+@router.post(
+    "/ask",
+    response_model=InvestigatorResponse,
+)
+async def ask_investigator(
+    request: InvestigatorRequest,
+):
     try:
+        history = [
+            {
+                "role": message.role,
+                "content": message.content,
+            }
+            for message in request.history[-10:]
+        ]
+
         result = investigate(
             question=request.question,
             language=request.language,
+            history=history,
         )
 
         return InvestigatorResponse(

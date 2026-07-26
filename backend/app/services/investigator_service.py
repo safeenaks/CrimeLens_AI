@@ -64,21 +64,95 @@ def call_groq(prompt: str) -> str:
 # AI Query Planner
 # ---------------------------------------------------------
 
-def build_investigation_plan(question: str) -> dict:
+def build_investigation_plan(
+    question: str,
+    history: list | None = None,
+) -> dict:
     """
-    Convert an English or Kannada investigator question
-    into a safe structured CrimeLens query plan.
+    Convert an investigator question into a safe,
+    structured CrimeLens database investigation plan.
+
+    Recent conversation history is supplied so follow-up
+    questions such as "in that district" can be resolved.
     """
+
+    history = history or []
+
+    conversation_context = json.dumps(
+        history[-10:],
+        ensure_ascii=False,
+    )
 
     prompt = f"""
-You are the query planner for CrimeLens AI, a crime intelligence system.
+You are the query planner for CrimeLens AI, a Karnataka
+crime intelligence system.
 
-Your task is to convert an investigator's natural-language question
-into ONE structured database investigation plan.
+Convert the investigator's CURRENT question into exactly
+ONE structured database investigation plan.
 
-The investigator may ask questions in English or Kannada.
+The investigator may communicate in English or Kannada.
 
-AVAILABLE CRIMELENS DATABASE FIELDS:
+You may receive recent conversation history.
+
+Use conversation history ONLY when necessary to resolve
+references in the current question.
+
+Examples:
+
+"that district"
+"that police station"
+"those cases"
+"there"
+"the same district"
+
+Kannada examples:
+
+"ಅದೇ ಜಿಲ್ಲೆಯಲ್ಲಿ"
+"ಆ ಜಿಲ್ಲೆಯಲ್ಲಿ"
+"ಆ ಪೊಲೀಸ್ ಠಾಣೆಯಲ್ಲಿ"
+"ಅಲ್ಲಿ"
+
+
+CONTEXT EXAMPLE:
+
+Previous user question:
+Which district has the highest number of crimes?
+
+Previous assistant answer:
+Bengaluru Urban has the highest number of crimes.
+
+Current question:
+Which police station has the most cases in that district?
+
+Correct plan:
+
+{{
+    "operation": "group",
+    "field": "police_station",
+    "filters": {{
+        "district": {{
+            "$regex": "^Bengaluru Urban$",
+            "$options": "i"
+        }}
+    }},
+    "limit": 1
+}}
+
+
+IMPORTANT CONTEXT RULE:
+
+Conversation history is CONTEXT ONLY.
+
+It can be used to determine what words such as
+"that district" refer to.
+
+Never treat a statistic from conversation history as
+verified evidence for the new answer.
+
+The database query must always retrieve fresh evidence.
+
+
+AVAILABLE CRIMELENS FIELDS:
 
 case_id
 fir_number
@@ -101,9 +175,10 @@ victim_age_known
 SUPPORTED OPERATIONS:
 
 
-1. COUNT
+1. count
 
-Use when the investigator asks how many cases satisfy conditions.
+Use when the investigator asks how many records match
+specific conditions.
 
 Example:
 
@@ -118,43 +193,36 @@ Example:
 }}
 
 
-2. GROUP
+2. group
 
-Use for rankings, distributions, most common values,
-highest counts, lowest counts, top categories, etc.
+Use for:
+
+- highest
+- lowest
+- most
+- least
+- top categories
+- distributions
+- rankings
 
 Example:
-
-Question:
-Which district has the highest number of crimes?
-
-Output:
 
 {{
     "operation": "group",
     "field": "district",
     "filters": {{}},
-    "limit": 1
-}}
-
-
-Question:
-What are the five most common crime types?
-
-Output:
-
-{{
-    "operation": "group",
-    "field": "crime_type",
-    "filters": {{}},
     "limit": 5
 }}
 
 
-3. FIND
+3. find
 
-Use when the investigator asks to show, list,
-retrieve or find individual crime records.
+Use when the investigator asks to:
+
+- show cases
+- list cases
+- retrieve cases
+- find cases
 
 Example:
 
@@ -170,59 +238,66 @@ Example:
 }}
 
 
-FILTER FORMAT:
-
-For text values, use case-insensitive matching.
-
-Example:
-
-{{
-    "district": {{
-        "$regex": "^Mysuru$",
-        "$options": "i"
-    }}
-}}
-
-
 STRICT RULES:
 
 - Return ONLY one valid JSON object.
-- Do not return markdown.
-- Do not explain your answer.
-- Do not include ```json.
-- Never invent filters.
-- Never invent district names.
-- Never invent police station names.
-- Never invent crime types.
-- Never invent severity values.
-- Never invent status values.
-- Only create a filter when the investigator explicitly mentions it.
-- Only use fields listed above.
-- If the question asks "how many", normally use count.
-- If the question asks "which has the most", use group.
-- If the question asks "highest", use group.
-- If the question asks "lowest", use group.
-- If the question asks "top", use group.
-- If the question asks "most common", use group.
-- If the question asks to show/list/find cases, use find.
+- Do not return Markdown.
+- Do not explain the JSON.
+- Never invent a district.
+- Never invent a police station.
+- Never invent a crime type.
+- Never invent a severity.
+- Never invent a status.
+- Never invent case information.
+- Never add unrelated filters.
+- Only use available CrimeLens database fields.
+- Use case-insensitive regex for text filters.
 - limit must be between 1 and 20.
-- Kannada questions must be interpreted with the same rules.
+
+A filter may come from:
+
+1. Information explicitly stated in the current question.
+
+OR
+
+2. A clearly resolved contextual reference from recent
+   conversation history.
+
+If the investigator asks "how many", normally use "count".
+
+If the investigator asks highest, lowest, most, least,
+top or similar ranking questions, use "group".
+
+If the investigator asks to show, list, retrieve or find
+cases, use "find".
 
 
-INVESTIGATOR QUESTION:
+RECENT CONVERSATION:
+
+{conversation_context}
+
+
+CURRENT INVESTIGATOR QUESTION:
 
 {question}
 """
 
-    response = call_groq(prompt)
+    response = call_groq(prompt).strip()
 
-    response = response.strip()
-
-    # Defensive cleanup in case the model returns a code block.
+    # Remove accidental Markdown code fences.
     if response.startswith("```"):
-        response = response.replace("```json", "")
-        response = response.replace("```JSON", "")
-        response = response.replace("```", "")
+        response = response.replace(
+            "```json",
+            "",
+        )
+        response = response.replace(
+            "```JSON",
+            "",
+        )
+        response = response.replace(
+            "```",
+            "",
+        )
         response = response.strip()
 
     try:
@@ -250,8 +325,8 @@ def validate_filters(filters: dict) -> dict:
     Validate AI-generated filters before sending them
     to MongoDB.
 
-    This prevents the AI from executing arbitrary MongoDB
-    operators or accessing unsupported fields.
+    Only approved CrimeLens fields and safe regex
+    operators are allowed.
     """
 
     if not isinstance(filters, dict):
@@ -279,7 +354,7 @@ def validate_filters(filters: dict) -> dict:
                     value["$options"]
                 )
 
-                # Only allow case-insensitive regex option.
+                # Only allow case-insensitive regex.
                 if options == "i":
                     operators["$options"] = "i"
 
@@ -300,7 +375,7 @@ def validate_filters(filters: dict) -> dict:
 def execute_plan(plan: dict) -> dict:
     """
     Execute a validated AI investigation plan against
-    CrimeLens MongoDB.
+    the Karnataka historical crime dataset.
     """
 
     operation = plan.get("operation")
@@ -315,8 +390,10 @@ def execute_plan(plan: dict) -> dict:
 
     if operation == "count":
 
-        count = database.historical_cases.count_documents(
-            filters
+        count = (
+            database.historical_cases.count_documents(
+                filters
+            )
         )
 
         return {
@@ -353,7 +430,7 @@ def execute_plan(plan: dict) -> dict:
 
         pipeline = []
 
-        # Apply optional filters first.
+        # Apply optional filters.
         if filters:
             pipeline.append(
                 {
@@ -361,7 +438,7 @@ def execute_plan(plan: dict) -> dict:
                 }
             )
 
-        # Ignore missing or empty values.
+        # Ignore missing and empty values.
         pipeline.append(
             {
                 "$match": {
@@ -375,7 +452,7 @@ def execute_plan(plan: dict) -> dict:
             }
         )
 
-        # Group records.
+        # Group by requested field.
         pipeline.append(
             {
                 "$group": {
@@ -396,7 +473,6 @@ def execute_plan(plan: dict) -> dict:
             }
         )
 
-        # Limit results.
         pipeline.append(
             {
                 "$limit": limit
@@ -476,8 +552,8 @@ Respond in clear and natural Kannada.
 
 Use Kannada for the explanation.
 
-Keep official names such as district names,
-police station names, FIR numbers and case IDs
+Keep official district names, police station names,
+FIR numbers, case IDs and other official identifiers
 unchanged where appropriate.
 """
 
@@ -493,8 +569,8 @@ You are CrimeLens AI Investigator.
 You assist crime investigators by explaining VERIFIED
 CrimeLens crime intelligence results.
 
-You have already been provided with evidence retrieved
-from the CrimeLens database.
+The evidence below has already been retrieved from the
+CrimeLens historical Karnataka crime dataset.
 
 STRICT RULES:
 
@@ -508,16 +584,28 @@ STRICT RULES:
 - Never invent crime types.
 - Never change numerical values.
 - Never claim causation based only on crime counts.
-- If the evidence is empty, clearly state that no matching
+
+- If evidence is empty, clearly state that no matching
   information was found.
-- If evidence is insufficient to answer the question,
-  clearly say so.
+
+- If the evidence is insufficient to answer the question,
+  clearly state that the available evidence is insufficient.
+
 - Mention important numerical results when available.
-- Keep the answer concise.
+
+- Keep the answer concise and professional.
+
+- Return plain text only.
+
+- Do NOT use Markdown formatting.
+- Do NOT use **bold** formatting.
+- Do NOT use Markdown headings.
+
 - Do not mention MongoDB.
 - Do not mention JSON.
 - Do not mention query plans.
 - Do not mention internal implementation details.
+
 
 LANGUAGE:
 
@@ -550,21 +638,23 @@ VERIFIED CRIMELENS EVIDENCE:
 def investigate(
     question: str,
     language: str,
+    history: list | None = None,
 ) -> dict:
     """
     Complete CrimeLens AI Investigator workflow.
 
-    1. Understand question with Groq.
-    2. Generate structured plan.
+    1. Understand the current question and conversation.
+    2. Generate a structured investigation plan.
     3. Validate the plan.
-    4. Query CrimeLens MongoDB.
-    5. Generate grounded English/Kannada response.
+    4. Query the historical Karnataka crime dataset.
+    5. Generate an evidence-grounded English/Kannada answer.
     """
 
     try:
 
         plan = build_investigation_plan(
-            question
+            question=question,
+            history=history,
         )
 
         evidence = execute_plan(

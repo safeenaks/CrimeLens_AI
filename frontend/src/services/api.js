@@ -238,12 +238,17 @@ export function getCaseLinkage(caseId) {
 
 // AI Investigator
 
-export function askInvestigator(question, language = "en") {
+export function askInvestigator(
+  question,
+  language = "en",
+  history = []
+) {
   return request("/api/investigator/ask", {
     method: "POST",
     body: JSON.stringify({
       question,
       language,
+      history,
     }),
   });
 }
