@@ -4,6 +4,7 @@ import {
   BarChart3,
   MapPinned,
   Link2,
+  Bot,
   Settings,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -33,6 +34,11 @@ const menu = [
     title: "Case Linkage",
     path: "/case-linkage",
     icon: Link2,
+  },
+  {
+  title: "AI Investigator",
+  path: "/investigator",
+  icon: Bot,
   },
   {
     title: "Settings",

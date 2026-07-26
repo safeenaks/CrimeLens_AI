@@ -9,6 +9,7 @@ import Hotspots from "./pages/Hotspots";
 import CaseLinkage from "./pages/CaseLinkage";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Investigator from "./pages/Investigator";
 
 import DashboardLayout from "./layouts/DashboardLayout";
 
@@ -36,7 +37,10 @@ function App() {
             path="/case-linkage"
             element={<CaseLinkage />}
           />
-
+          <Route
+            path="/investigator"
+            element={<Investigator />}
+          />
           <Route
             path="/settings"
             element={<Settings />}
