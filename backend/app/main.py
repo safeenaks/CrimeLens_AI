@@ -2,7 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import check_database_connection
-from app.routers import cases, analytics, risk, hotspots, predictions, linkage
+from app.routers import (
+    cases,
+    analytics,
+    risk,
+    hotspots,
+    predictions,
+    linkage,
+    investigator,
+)
 from app.config import FRONTEND_URL
 
 app = FastAPI(
@@ -39,6 +47,7 @@ app.include_router(risk.router)
 app.include_router(hotspots.router)
 app.include_router(predictions.router)
 app.include_router(linkage.router)
+app.include_router(investigator.router)
 
 @app.get("/")
 def root():
