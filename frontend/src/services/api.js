@@ -224,18 +224,6 @@ export function deleteCase(caseId) {
 
 }
 
-
-
-// Case Linkage
-
-
-
-export function getCaseLinkage(caseId) {
-
-  return request(`/api/linkage/${caseId}`);
-
-}
-
 // AI Investigator
 
 export function askInvestigator(
@@ -251,4 +239,16 @@ export function askInvestigator(
       history,
     }),
   });
+}
+
+// Case Linkage
+
+export function getCaseLinkage(caseId) {
+  return request(`/api/linkage/${caseId}`);
+}
+
+export function getCaseLinkageNetwork(caseId, minimumScore = 40) {
+  return request(
+    `/api/linkage/${caseId}/network?minimum_score=${minimumScore}`
+  );
 }
